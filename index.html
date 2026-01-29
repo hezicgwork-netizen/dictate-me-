@@ -11,11 +11,11 @@
         .tab-inactive { color: #94a3b8; border-bottom: 4px solid transparent; opacity: 0.6; }
         .tab-active { border-bottom: 4px solid currentColor; opacity: 1; }
         .hidden { display: none; }
-        /* Card Flip Animation */
         .card-inner { transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; position: relative; width: 100%; height: 100%; }
         .card-flipped .card-inner { transform: rotateY(180deg); }
         .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 1.5rem; }
         .card-back { transform: rotateY(180deg); }
+        .perspective-1000 { perspective: 1000px; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
@@ -41,7 +41,7 @@
         </header>
 
         <!-- Main Content -->
-        <main class="flex-1 p-4">
+        <main class="flex-1 p-4 overflow-y-auto">
             
             <!-- Setup View -->
             <section id="view-setup" class="space-y-6">
@@ -53,11 +53,9 @@
                         <button onclick="addWord()" class="w-full bg-rose-500 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition-transform">הוסף לרשימה</button>
                     </div>
                 </div>
-                
                 <div id="words-list" class="bg-white rounded-xl border border-slate-100 overflow-hidden"></div>
-
                 <div id="start-learning-btn" class="hidden text-center p-4">
-                    <button onclick="switchView('cards')" class="bg-blue-600 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce">התחל ללמוד</button>
+                    <button onclick="switchView('cards')" class="bg-blue-600 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce text-lg">התחל ללמוד</button>
                 </div>
             </section>
 
@@ -69,25 +67,22 @@
                         <div id="progress-bar" class="h-full bg-blue-500 w-0 transition-all"></div>
                     </div>
                 </div>
-
                 <div id="card-container" class="w-full aspect-[3/4] relative perspective-1000">
                     <div class="card-inner" onclick="this.parentElement.classList.toggle('card-flipped')">
                         <div class="card-face bg-white border-2 border-blue-100 shadow-xl p-8">
-                            <button onclick="event.stopPropagation(); speakCurrent();" class="bg-blue-50 p-6 rounded-full mb-6">🔊</button>
+                            <button onclick="event.stopPropagation(); speakText(words[currentIdx].eng);" class="bg-blue-50 p-6 rounded-full mb-6 text-2xl">🔊</button>
                             <h2 id="card-english" class="text-4xl font-black text-blue-900" dir="ltr"></h2>
-                            <p class="mt-4 text-xs text-slate-400">לחץ להפיכה</p>
+                            <p class="mt-4 text-xs text-slate-400 italic">לחץ להפיכה</p>
                         </div>
                         <div class="card-face card-back bg-blue-600 text-white border-2 border-blue-400 shadow-xl p-8">
                             <h2 id="card-hebrew" class="text-4xl font-black"></h2>
                         </div>
                     </div>
                 </div>
-
                 <div class="flex gap-4 mt-6">
                     <button onclick="markAsKnown(false)" class="flex-1 bg-white border-2 border-slate-200 text-slate-600 py-4 rounded-xl font-bold active:bg-slate-50">לא בטוח</button>
                     <button onclick="markAsKnown(true)" class="flex-1 bg-green-500 text-white py-4 rounded-xl font-bold shadow-md active:bg-green-600">יודע!</button>
                 </div>
-                
                 <div class="flex justify-center gap-8 text-slate-400 mt-2">
                     <button onclick="moveCard(-1)">⬅️</button>
                     <span id="card-index">1/1</span>
@@ -95,19 +90,31 @@
                 </div>
             </section>
 
-            <!-- Practice Placeholder -->
-            <section id="view-practice" class="hidden text-center py-10">
-                <div class="text-6xl mb-4">✨</div>
-                <h2 class="text-2xl font-bold mb-4">הקנייה הושלמה!</h2>
-                <p class="mb-8 text-slate-600 px-6">עברת על כל המילים. עכשיו נראה מה אתה זוכר בתרגול.</p>
-                <button onclick="switchView('game')" class="bg-indigo-600 text-white w-full py-4 rounded-xl font-bold shadow-lg">מעבר לתרגול</button>
+            <!-- Practice View -->
+            <section id="view-practice" class="hidden text-center space-y-6">
+                <div class="bg-indigo-50 p-4 rounded-xl text-indigo-800 font-bold mb-4" id="practice-status">בחר את התרגום הנכון:</div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border-b-4 border-indigo-200">
+                    <button id="practice-speaker" class="bg-indigo-100 p-3 rounded-full mb-4 text-indigo-600">🔊</button>
+                    <h2 id="practice-target" class="text-3xl font-black text-slate-800" dir="ltr"></h2>
+                </div>
+                <div id="practice-options" class="grid grid-cols-1 gap-3"></div>
             </section>
 
             <!-- Game View -->
-            <section id="view-game" class="hidden text-center py-10">
-                <div class="text-6xl mb-4">🎮</div>
-                <h2 class="text-2xl font-bold mb-4 text-amber-600">המשחק פתוח!</h2>
-                <button onclick="alert('המשחק בטעינה...')" class="bg-amber-500 text-white w-full py-4 rounded-xl font-bold">שחק עכשיו</button>
+            <section id="view-game" class="hidden text-center space-y-4">
+                <div class="flex justify-between items-center px-2">
+                    <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold">זמן: <span id="game-timer">30</span></span>
+                    <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">נקודות: <span id="game-score">0</span></span>
+                </div>
+                <div id="game-box" class="bg-amber-500 p-10 rounded-2xl shadow-lg text-white">
+                    <h2 id="game-target" class="text-4xl font-black" dir="ltr">?</h2>
+                </div>
+                <div id="game-options" class="grid grid-cols-2 gap-3"></div>
+                <div id="game-over" class="hidden bg-white p-6 rounded-2xl shadow-xl absolute inset-x-4 top-1/4 z-30 border-t-8 border-amber-500">
+                    <h2 class="text-2xl font-bold mb-2">נגמר הזמן!</h2>
+                    <p class="text-4xl font-black text-amber-600 mb-6" id="final-score">0</p>
+                    <button onclick="startGame()" class="w-full bg-amber-500 text-white py-4 rounded-xl font-bold">שחק שוב</button>
+                </div>
             </section>
 
         </main>
@@ -117,11 +124,16 @@
         let words = [];
         let knownWordsIds = new Set();
         let currentIdx = 0;
+        let practiceIdx = 0;
+        
+        // Game state
+        let gameScore = 0;
+        let timeLeft = 30;
+        let gameInterval;
 
         function addWord() {
             const heb = document.getElementById('input-hebrew').value.trim();
             const eng = document.getElementById('input-english').value.trim();
-            
             if (heb && eng) {
                 words.push({ heb, eng, id: Date.now().toString() });
                 document.getElementById('input-hebrew').value = '';
@@ -137,10 +149,9 @@
                 <div class="flex justify-between items-center p-4 border-b last:border-0">
                     <span class="font-bold">${w.heb}</span>
                     <span class="text-rose-600 font-bold" dir="ltr">${w.eng}</span>
-                    <button onclick="removeWord('${w.id}')" class="text-slate-300">🗑️</button>
+                    <button onclick="removeWord('${w.id}')" class="text-slate-300 px-2">🗑️</button>
                 </div>
             `).join('');
-            
             document.getElementById('start-learning-btn').classList.toggle('hidden', words.length < 3);
         }
 
@@ -153,8 +164,7 @@
 
         function updateNavState() {
             const canLearn = words.length > 0;
-            const canPractice = words.length > 0 && knownWordsIds.size === words.length;
-            
+            const canPractice = words.length >= 3 && knownWordsIds.size === words.length;
             toggleNav('nav-cards', canLearn);
             toggleNav('nav-practice', canPractice);
             toggleNav('nav-game', canPractice);
@@ -162,23 +172,22 @@
 
         function toggleNav(id, enabled) {
             const el = document.getElementById(id);
-            if (enabled) {
-                el.classList.remove('pointer-events-none', 'opacity-20');
-            } else {
-                el.classList.add('pointer-events-none', 'opacity-20');
-            }
+            if (enabled) el.classList.remove('pointer-events-none', 'opacity-20');
+            else el.classList.add('pointer-events-none', 'opacity-20');
         }
 
         function switchView(viewName) {
+            clearInterval(gameInterval);
             ['setup', 'cards', 'practice', 'game'].forEach(v => {
                 document.getElementById('view-' + v).classList.add('hidden');
                 document.getElementById('nav-' + v).classList.replace('tab-active', 'tab-inactive');
             });
-
             document.getElementById('view-' + viewName).classList.remove('hidden');
             document.getElementById('nav-' + viewName).classList.replace('tab-inactive', 'tab-active');
 
             if (viewName === 'cards') initCards();
+            if (viewName === 'practice') initPractice();
+            if (viewName === 'game') startGame();
         }
 
         function initCards() {
@@ -192,24 +201,17 @@
             document.getElementById('card-english').textContent = word.eng;
             document.getElementById('card-hebrew').textContent = word.heb;
             document.getElementById('card-index').textContent = `${currentIdx + 1} / ${words.length}`;
-            
             const progress = (knownWordsIds.size / words.length) * 100;
             document.getElementById('progress-bar').style.width = progress + '%';
             document.getElementById('progress-text').textContent = `${knownWordsIds.size}/${words.length}`;
         }
 
         function markAsKnown(known) {
-            const wordId = words[currentIdx].id;
-            if (known) {
-                knownWordsIds.add(wordId);
-            } else {
-                knownWordsIds.delete(wordId);
-            }
-            
+            if (known) knownWordsIds.add(words[currentIdx].id);
+            else knownWordsIds.delete(words[currentIdx].id);
             updateNavState();
-
             if (knownWordsIds.size === words.length) {
-                setTimeout(() => switchView('practice'), 300);
+                setTimeout(() => { if(confirm("מעולה! סיימת את ההקנייה. לעבור לתרגול?")) switchView('practice'); }, 300);
             } else {
                 moveCard(1);
             }
@@ -220,11 +222,101 @@
             updateCardUI();
         }
 
-        function speakCurrent() {
-            const text = words[currentIdx].eng;
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'en-US';
-            window.speechSynthesis.speak(utterance);
+        // --- PRACTICE LOGIC ---
+        function initPractice() {
+            practiceIdx = 0;
+            updatePracticeQuestion();
+        }
+
+        function updatePracticeQuestion() {
+            const target = words[practiceIdx];
+            document.getElementById('practice-target').textContent = target.eng;
+            document.getElementById('practice-speaker').onclick = () => speakText(target.eng);
+            speakText(target.eng);
+
+            const options = [target.heb];
+            const others = words.filter(w => w.id !== target.id).map(w => w.heb);
+            while(options.length < Math.min(4, words.length)) {
+                const rand = others[Math.floor(Math.random() * others.length)];
+                if(!options.includes(rand)) options.push(rand);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('practice-options');
+            container.innerHTML = options.map(opt => `
+                <button onclick="checkPractice('${opt}')" class="bg-white border-2 border-slate-100 p-4 rounded-xl font-bold active:border-indigo-500 transition-colors">
+                    ${opt}
+                </button>
+            `).join('');
+        }
+
+        function checkPractice(selected) {
+            const correct = words[practiceIdx].heb;
+            if(selected === correct) {
+                practiceIdx++;
+                if(practiceIdx < words.length) updatePracticeQuestion();
+                else {
+                    alert("כל הכבוד! סיימת את התרגול. המשחק פתוח!");
+                    switchView('game');
+                }
+            } else {
+                alert("טעות, נסה שוב!");
+            }
+        }
+
+        // --- GAME LOGIC ---
+        function startGame() {
+            gameScore = 0;
+            timeLeft = 30;
+            document.getElementById('game-over').classList.add('hidden');
+            document.getElementById('game-score').textContent = "0";
+            updateGameQuestion();
+            clearInterval(gameInterval);
+            gameInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('game-timer').textContent = timeLeft;
+                if(timeLeft <= 0) {
+                    clearInterval(gameInterval);
+                    document.getElementById('game-over').classList.remove('hidden');
+                    document.getElementById('final-score').textContent = gameScore;
+                }
+            }, 1000);
+        }
+
+        function updateGameQuestion() {
+            const target = words[Math.floor(Math.random() * words.length)];
+            document.getElementById('game-target').textContent = target.eng;
+            
+            const options = [target.heb];
+            const others = words.filter(w => w.id !== target.id).map(w => w.heb);
+            while(options.length < Math.min(4, words.length)) {
+                const rand = others[Math.floor(Math.random() * others.length)];
+                if(!options.includes(rand)) options.push(rand);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            document.getElementById('game-options').innerHTML = options.map(opt => `
+                <button onclick="checkGame('${opt}', '${target.heb}')" class="bg-white text-slate-800 p-4 rounded-xl font-bold shadow active:scale-95">
+                    ${opt}
+                </button>
+            `).join('');
+        }
+
+        function checkGame(selected, correct) {
+            if(selected === correct) {
+                gameScore += 10;
+                document.getElementById('game-score').textContent = gameScore;
+                updateGameQuestion();
+            } else {
+                timeLeft = Math.max(0, timeLeft - 2); // Penalty
+            }
+        }
+
+        function speakText(text) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'en-US';
+            window.speechSynthesis.speak(u);
         }
     </script>
 </body>
