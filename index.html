@@ -2,186 +2,161 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>לומדים אנגלית בכיף</title>
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React and Babel for running React in the browser -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;400;700;800&display=swap');
-        body { font-family: 'Assistant', sans-serif; overflow-x: hidden; touch-action: manipulation; }
-        .transform-style-3d { transform-style: preserve-3d; }
-        .backface-hidden { backface-visibility: hidden; }
-        .rotate-y-180 { transform: rotateY(180deg); }
+        body { font-family: 'Assistant', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .tab-inactive { color: #94a3b8; border-bottom: 4px solid transparent; opacity: 0.6; }
+        .tab-active { border-bottom: 4px solid currentColor; opacity: 1; }
+        .hidden { display: none; }
     </style>
 </head>
-<body class="bg-slate-50">
-    <div id="root"></div>
+<body class="bg-slate-50 min-h-screen">
 
-    <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
-        
-        // Icon Component Wrapper
-        const Icon = ({ name, className }) => {
-            const [iconSvg, setIconSvg] = useState('');
-            useEffect(() => {
-                if (window.lucide) {
-                    const icon = window.lucide.icons[name];
-                    if (icon) setIconSvg(icon.toSvg({ class: className }));
-                }
-            }, [name, className]);
-            return <span dangerouslySetInnerHTML={{ __html: iconSvg }} />;
-        };
+    <div class="max-w-md mx-auto bg-white min-h-screen shadow-xl flex flex-col">
+        <!-- Header -->
+        <header class="bg-white pt-6 pb-2 sticky top-0 z-20 border-b border-slate-100 text-center">
+            <h1 class="text-2xl font-black text-slate-800 mb-4">לומדים אנגלית בכיף</h1>
+            <nav class="flex justify-around items-center">
+                <button onclick="switchView('setup')" id="nav-setup" class="flex flex-col items-center flex-1 py-2 tab-active text-rose-500">
+                    <span class="text-xs font-bold">ניהול</span>
+                </button>
+                <button onclick="switchView('cards')" id="nav-cards" class="flex flex-col items-center flex-1 py-2 tab-inactive text-blue-500">
+                    <span class="text-xs font-bold">הקנייה</span>
+                </button>
+                <button onclick="switchView('practice')" id="nav-practice" class="flex flex-col items-center flex-1 py-2 tab-inactive text-indigo-600">
+                    <span class="text-xs font-bold">תרגול</span>
+                </button>
+                <button onclick="switchView('game')" id="nav-game" class="flex flex-col items-center flex-1 py-2 tab-inactive text-amber-500">
+                    <span class="text-xs font-bold">משחק</span>
+                </button>
+            </nav>
+        </header>
 
-        const App = () => {
-            const [words, setWords] = useState([]);
-            const [knownWords, setKnownWords] = useState(new Set());
-            const [newHebrew, setNewHebrew] = useState('');
-            const [newEnglish, setNewEnglish] = useState('');
-            const [view, setView] = useState('setup');
-            const [gameUnlocked, setGameUnlocked] = useState(false);
-
-            const addWord = () => {
-                if (newHebrew.trim() && newEnglish.trim()) {
-                    setWords(prev => [...prev, { 
-                        id: Math.random().toString(36).substr(2, 9), 
-                        hebrew: newHebrew.trim(), 
-                        english: newEnglish.trim() 
-                    }]);
-                    setNewHebrew('');
-                    setNewEnglish('');
-                }
-            };
-
-            const removeWord = (id) => {
-                setWords(prev => prev.filter(w => w.id !== id));
-                const newKnown = new Set(knownWords);
-                newKnown.delete(id);
-                setKnownWords(newKnown);
-            };
-
-            const toggleKnown = (id) => {
-                const newKnown = new Set(knownWords);
-                if (newKnown.has(id)) newKnown.delete(id);
-                else newKnown.add(id);
-                setKnownWords(newKnown);
-            };
-
-            const speak = (text) => {
-                if (!text) return;
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US';
-                window.speechSynthesis.speak(utterance);
-            };
-
-            const allKnown = words.length > 0 && knownWords.size === words.length;
-
-            const NavBtn = ({ target, label, iconName, colorClass, disabled = false }) => {
-                const isActive = view === target;
-                return (
-                    <button 
-                        disabled={disabled}
-                        onClick={() => setView(target)}
-                        className={`flex flex-col items-center justify-center py-2 px-0.5 flex-1 transition-all duration-300 border-b-4 ${disabled ? 'opacity-20 grayscale cursor-not-allowed border-transparent' : isActive ? `${colorClass} border-current` : 'text-slate-400 border-transparent'}`}
-                    >
-                        <Icon name={iconName} className={`w-5 h-5 mb-0.5 ${isActive ? 'scale-110' : ''}`} />
-                        <span className="text-[10px] sm:text-xs font-bold whitespace-nowrap">{label}</span>
-                    </button>
-                );
-            };
-
-            return (
-                <div className="min-h-screen bg-slate-50 flex flex-col items-center">
-                    <div className="w-full max-w-md bg-white min-h-screen flex flex-col shadow-xl">
-                        <header className="bg-white pt-4 pb-1 sticky top-0 z-20 border-b border-slate-100">
-                            <div className="text-center px-2">
-                                <h1 className="text-xl sm:text-2xl font-black text-slate-800 flex justify-center items-center gap-2 mb-2">
-                                    <Icon name="GraduationCap" className="w-6 h-6 text-indigo-600" />
-                                    לומדים אנגלית בכיף
-                                </h1>
-                                <nav className="flex justify-around items-center">
-                                    <NavBtn target="setup" label="ניהול" iconName="Plus" colorClass="text-rose-500" />
-                                    <NavBtn target="cards" label="הקנייה" iconName="BookOpen" colorClass="text-blue-500" disabled={words.length === 0} />
-                                    <NavBtn target="practice" label="תרגול" iconName="PenTool" colorClass="text-indigo-600" disabled={!allKnown} />
-                                    <NavBtn target="game" label="משחק" iconName="Gamepad2" colorClass="text-amber-500" disabled={!gameUnlocked} />
-                                </nav>
-                            </div>
-                        </header>
-
-                        <main className="flex-1 p-4 overflow-x-hidden">
-                            {view === 'setup' && (
-                                <div className="space-y-4">
-                                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-rose-100">
-                                        <h2 className="text-lg font-bold mb-3 text-slate-800 pr-2 border-r-4 border-rose-500">הוספת מילים</h2>
-                                        <div className="flex flex-col gap-3">
-                                            <input type="text" placeholder="עברית (למשל: תפוח)" className="w-full p-3 border-2 rounded-xl text-center" value={newHebrew} onChange={(e) => setNewHebrew(e.target.value)} />
-                                            <input type="text" placeholder="English" dir="ltr" className="w-full p-3 border-2 rounded-xl text-center" value={newEnglish} onChange={(e) => setNewEnglish(e.target.value)} />
-                                            <button onClick={addWord} className="w-full bg-rose-500 text-white font-bold py-3 rounded-xl shadow-md active:scale-95">הוסף לרשימה</button>
-                                        </div>
-                                    </div>
-                                    {words.length >= 3 && (
-                                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 flex flex-col items-center gap-2">
-                                            <p className="text-blue-800 text-sm font-bold">מעולה! בואו נתחיל ללמוד.</p>
-                                            <button onClick={() => setView('cards')} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold text-sm">התחל הקנייה</button>
-                                        </div>
-                                    )}
-                                    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                                        {words.map(word => (
-                                            <div key={word.id} className="flex justify-between p-3 border-b last:border-0 items-center">
-                                                <span>{word.hebrew}</span>
-                                                <span dir="ltr" className="text-rose-600 font-bold">{word.english}</span>
-                                                <button onClick={() => removeWord(word.id)} className="text-slate-300"><Icon name="Trash2" className="w-4 h-4"/></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {view === 'cards' && (
-                                <div className="flex flex-col items-center gap-4">
-                                    {/* Card logic here (Simplified for browser React) */}
-                                    <div className="bg-white border-2 border-blue-100 w-full aspect-[3/4] rounded-2xl shadow-lg flex flex-col items-center justify-center p-8 text-center">
-                                        <button onClick={() => speak(words[0].english)} className="bg-blue-50 p-6 rounded-full mb-4">
-                                            <Icon name="Volume2" className="w-8 h-8 text-blue-600" />
-                                        </button>
-                                        <h2 className="text-4xl font-black text-blue-900 mb-2" dir="ltr">{words[0].english}</h2>
-                                        <p className="text-2xl text-slate-500">{words[0].hebrew}</p>
-                                    </div>
-                                    <button onClick={() => {setKnownWords(new Set(words.map(w => w.id))); setGameUnlocked(true); setView('practice');}} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold mt-4">סיימתי ללמוד - לעבור לתרגול</button>
-                                </div>
-                            )}
-                            
-                            {view === 'practice' && (
-                                <div className="text-center p-10">
-                                    <Icon name="Trophy" className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                                    <h2 className="text-2xl font-bold">כל הכבוד!</h2>
-                                    <p className="mb-8">עברת את שלב התרגול בהצלחה.</p>
-                                    <button onClick={() => setView('game')} className="bg-amber-500 text-white px-8 py-4 rounded-2xl font-bold shadow-lg w-full">בואו נשחק!</button>
-                                </div>
-                            )}
-
-                            {view === 'game' && (
-                                <div className="text-center p-10 bg-amber-50 rounded-2xl border-2 border-amber-200">
-                                    <Icon name="Gamepad2" className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                                    <h2 className="text-xl font-bold mb-4">המשחק מוכן!</h2>
-                                    <p className="text-sm text-slate-600">בגרסת הדפדפן הזו, המשחק יופעל במלואו לאחר שתלחץ על הכפתור למטה.</p>
-                                    <button onClick={() => alert('כל הכבוד! צברת 100 נקודות!')} className="mt-6 bg-amber-500 text-white px-8 py-4 rounded-2xl font-bold shadow-lg w-full">התחל משחק</button>
-                                </div>
-                            )}
-                        </main>
+        <!-- Main Content -->
+        <main class="flex-1 p-4">
+            
+            <!-- Setup View -->
+            <section id="view-setup" class="space-y-6">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-rose-100">
+                    <h2 class="text-lg font-bold mb-3 border-r-4 border-rose-500 pr-2">הוספת מילים</h2>
+                    <div class="space-y-3">
+                        <input type="text" id="input-hebrew" placeholder="עברית (תפוח)" class="w-full p-3 border-2 rounded-xl text-center">
+                        <input type="text" id="input-english" placeholder="English (Apple)" dir="ltr" class="w-full p-3 border-2 rounded-xl text-center">
+                        <button onclick="addWord()" class="w-full bg-rose-500 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition-transform">הוסף לרשימה</button>
                     </div>
                 </div>
-            );
-        };
+                
+                <div id="words-list" class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                    <!-- Words appear here -->
+                </div>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+                <div id="start-learning-btn" class="hidden text-center p-4">
+                    <button onclick="switchView('cards')" class="bg-blue-600 text-white px-8 py-3 rounded-full font-bold shadow-lg">התחל ללמוד</button>
+                </div>
+            </section>
+
+            <!-- Other views placeholder -->
+            <section id="view-cards" class="hidden text-center space-y-6">
+                <div id="card-display" class="bg-white border-2 border-blue-100 aspect-[3/4] rounded-3xl shadow-xl flex flex-col items-center justify-center p-8">
+                    <button onclick="speakCurrent()" class="bg-blue-50 p-6 rounded-full mb-6">🔊</button>
+                    <h2 id="card-english" class="text-4xl font-black text-blue-900 mb-2" dir="ltr">Apple</h2>
+                    <p id="card-hebrew" class="text-2xl text-slate-500">תפוח</p>
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="nextCard()" class="flex-1 bg-indigo-600 text-white py-4 rounded-xl font-bold">המילה הבאה</button>
+                </div>
+            </section>
+
+            <section id="view-practice" class="hidden text-center py-10">
+                <div class="text-5xl mb-4">🏆</div>
+                <h2 class="text-2xl font-bold mb-4">כל הכבוד!</h2>
+                <p class="mb-8 text-slate-600">סיימת את שלב התרגול.</p>
+                <button onclick="switchView('game')" class="bg-amber-500 text-white w-full py-4 rounded-xl font-bold">לעבור למשחק</button>
+            </section>
+
+            <section id="view-game" class="hidden text-center py-10">
+                <div class="text-5xl mb-4">🎮</div>
+                <h2 class="text-2xl font-bold mb-4">המשחק מוכן!</h2>
+                <button onclick="alert('כל הכבוד! צברת 100 נקודות!')" class="bg-amber-500 text-white w-full py-4 rounded-xl font-bold">התחל משחק</button>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        let words = [];
+        let currentCardIdx = 0;
+
+        function addWord() {
+            const heb = document.getElementById('input-hebrew').value.trim();
+            const eng = document.getElementById('input-english').value.trim();
+            
+            if (heb && eng) {
+                words.push({ heb, eng, id: Date.now() });
+                document.getElementById('input-hebrew').value = '';
+                document.getElementById('input-english').value = '';
+                renderWords();
+            }
+        }
+
+        function renderWords() {
+            const list = document.getElementById('words-list');
+            list.innerHTML = words.map(w => `
+                <div class="flex justify-between items-center p-4 border-b last:border-0">
+                    <span class="font-bold">${w.heb}</span>
+                    <span class="text-rose-600 font-bold" dir="ltr">${w.eng}</span>
+                    <button onclick="removeWord(${w.id})" class="text-slate-300">🗑️</button>
+                </div>
+            `).join('');
+            
+            document.getElementById('start-learning-btn').classList.toggle('hidden', words.length < 3);
+        }
+
+        function removeWord(id) {
+            words = words.filter(w => w.id !== id);
+            renderWords();
+        }
+
+        function switchView(viewName) {
+            // Hide all views
+            ['setup', 'cards', 'practice', 'game'].forEach(v => {
+                document.getElementById('view-' + v).classList.add('hidden');
+                document.getElementById('nav-' + v).classList.replace('tab-active', 'tab-inactive');
+            });
+
+            // Show current view
+            document.getElementById('view-' + viewName).classList.remove('hidden');
+            document.getElementById('nav-' + viewName).classList.replace('tab-inactive', 'tab-active');
+
+            if (viewName === 'cards' && words.length > 0) {
+                updateCard();
+            }
+        }
+
+        function updateCard() {
+            const word = words[currentCardIdx];
+            document.getElementById('card-english').textContent = word.eng;
+            document.getElementById('card-hebrew').textContent = word.heb;
+        }
+
+        function nextCard() {
+            currentCardIdx = (currentCardIdx + 1) % words.length;
+            if (currentCardIdx === 0) {
+                switchView('practice');
+            } else {
+                updateCard();
+            }
+        }
+
+        function speakCurrent() {
+            const text = words[currentCardIdx].eng;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            window.speechSynthesis.speak(utterance);
+        }
     </script>
 </body>
 </html>
